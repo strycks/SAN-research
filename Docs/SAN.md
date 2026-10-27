@@ -9,16 +9,13 @@
 
 1. **Chức năng bắt buộc của Cinder:** cả ba driver đều có đủ ở cả ba bản.
 2. **Dell Unity và IBM FlashSystem 7300:** driver hỗ trợ gần hết chức năng tùy chọn (QoS, nhân bản, di chuyển volume do tủ thực hiện), ổn định qua ba bản.
-3. **Hitachi:** bước thay đổi lớn là từ Yoga lên Antelope. Antelope thêm GAD, nén/dedup, di chuyển volume do tủ thực hiện, nhiều pool. QoS và nhân bản kèm failover thì cả ba bản đều chưa có.
+3. **Hitachi:** bước thay đổi lớn là từ Yoga lên Antelope. Antelope thêm GAD, nén/dedup, di chuyển volume do tủ thực hiện, retype, nhiều pool. QoS và nhân bản kèm failover thì cả ba bản đều chưa có.
 4. **Antelope so với Caracal:** với ba driver này không có tính năng mới, chỉ có sửa lỗi.
-5. **VSP E590H:** sổ tay của Hitachi xác nhận tủ có các tính năng trong bảng. Riêng tài liệu driver ở cả ba bản không ghi tên model này (từ Antelope có ghi E590), nên chưa có xác nhận driver hỗ trợ chính thức (mục 9).
+5. **VSP E590H:** sổ tay của Hitachi xác nhận tủ có các tính năng trong bảng. Tài liệu driver upstream ở cả ba bản không ghi tên model này, nhưng Product Compatibility Guide của Hitachi ghi E590H được hỗ trợ trên Yoga, Antelope, Caracal. Còn thiếu thông tin firmware tối thiểu (mục 7).
 
 ---
 
-
-## 2. Cách làm và cách đọc bảng
-
-**Cách đọc**
+## 2. Cách đọc bảng
 
 - Bốn cột **Tủ**: tủ có tính năng đó hay không.
 - Ba cột **Driver**: dùng được tính năng đó từ OpenStack hay không.
@@ -29,80 +26,81 @@
 | ✔ | Có |
 | ✖ | Không |
 | ✔ từ Antelope | Driver Hitachi có từ bản 2023.1 Antelope trở đi; Yoga không có |
-| ✔ từ Caracal | Driver Hitachi có từ bản 2024.1 Caracal trở đi; Yoga và Antelope không có |
 | ◐ | Một phần, hoặc có điều kiện (xem ghi chú) |
 | – | Tài liệu không nêu, hoặc chưa xác nhận được |
 | ¹ ² ³ | Số ghi chú ở mục 4 |
 
-
 ---
 
-## Bảng so sánh tính năng của tủ và mức hỗ trợ của driver
+## 3. Bảng so sánh tính năng của tủ và mức hỗ trợ của driver
 
-Áp dụng cho cả ba bản Yoga, Antelope, Caracal, trừ các ô ghi "từ Antelope". Cột driver của Hitachi áp dụng chính thức cho VSP G700; VSP E590H chưa được tài liệu driver ghi tên (mục 9).
+Áp dụng cho cả ba bản Yoga, Antelope, Caracal, trừ các ô ghi "từ Antelope". Cột driver của Hitachi áp dụng cho VSP G700 (được ghi tên cả trong tài liệu upstream lẫn Product Compatibility Guide của Hitachi); VSP E590H được hỗ trợ theo Product Compatibility Guide của Hitachi (mục 7).
 
 | Tính năng | Mô tả | Cinder yêu cầu | Tủ Dell Unity XT 880 | Tủ IBM FlashSystem 7300 | Tủ Hitachi VSP G700 | Tủ Hitachi VSP E590H | Driver Cinder Dell | Driver Cinder IBM | Driver Cinder Hitachi |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Tạo/xóa LUN, map/unmap host | Cấp phát volume từ pool và gán cho host | Required | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Mở rộng LUN (kể cả đang attach) | Tăng dung lượng volume, không cần tạo lại | Required | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ ¹ | ✔ ¹ |
+| Mở rộng LUN | Tăng dung lượng volume, không cần tạo lại | Required | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ ¹ | ✔ ¹ |
+| Mở rộng LUN đang attach | Tăng dung lượng khi volume vẫn đang gắn vào máy ảo | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ ¹ | ✔ ¹ |
 | Snapshot | Bản chụp volume tại một thời điểm | Required | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Clone, tạo volume từ snapshot | Tạo volume mới độc lập từ volume hoặc snapshot | Required | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Giao thức FC, iSCSI | Kết nối host tới tủ qua Fibre Channel hoặc iSCSI | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Thin provisioning | Cấp dung lượng logic lớn hơn vật lý, chỉ chiếm chỗ khi ghi | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Thick provisioning | Cấp phát đủ dung lượng vật lý ngay khi tạo | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | – |
+| Thick provisioning | Cấp phát đủ dung lượng vật lý ngay khi tạo | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✖ |
 | Khôi phục LUN về snapshot | Đưa volume về đúng trạng thái của snapshot | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Chia sẻ LUN cho nhiều host | Một volume gán đồng thời cho nhiều host (cluster) | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
-| NVMe phía host | Giao thức NVMe qua FC/Ethernet, độ trễ thấp hơn SCSI | Optional | ✖ | ✔ | ✖ | – ² | ✖ | ✖ | ✖ |
+| NVMe phía host | Giao thức NVMe qua FC/Ethernet, độ trễ thấp hơn SCSI | Optional | ✖ | ✔ | ✖ | ✖ ² | ✖ | ✖ | ✖ |
 | QoS giới hạn IOPS/băng thông | Đặt trần IOPS hoặc MB/s cho từng volume | Optional | ✔ | ✔ | ✔ | ✔ ³ | ✔ | ✔ | ✖ |
-| Nén dữ liệu | Nén inline để giảm dung lượng vật lý | Optional | ✔ | ✔ | ✔ ⁴ | ✔ | ✔ ⁵ | ✔ | ✔ từ Caracal ⁶ |
-| Dedup | Loại bỏ các block dữ liệu trùng lặp | Optional | ✔ | ✔ | ✔ ⁴ | ✔ | – | – | ✔ từ Caracal ⁶ |
-| Auto-tiering | Tự chuyển dữ liệu nóng/lạnh giữa các tầng đĩa | Optional | ✔ ⁷ | ✔ | ✔ | – ² | ✔ | ✔ | ◐ ⁸ |
+| Nén dữ liệu | Nén inline để giảm dung lượng vật lý | Optional | ✔ | ✔ | ✔ ⁴ | ✔ | ✔ ⁵ | ✔ | ✔ từ Antelope ⁶ |
+| Dedup | Loại bỏ các block dữ liệu trùng lặp | Optional | ✔ | ✔ | ✔ ⁴ | ✔ | ◐ ¹⁷ | ✖ ¹⁸ | ✔ từ Antelope ⁶ |
+| Auto-tiering | Tự chuyển dữ liệu nóng/lạnh giữa các tầng đĩa | Optional | ✔ ⁷ | ✔ | ✔ | ✔ ² | ✔ | ✔ | ◐ ⁸ |
 | Consistency group, snapshot nhóm | Snapshot nhất quán cho một nhóm volume | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Replication đồng bộ | Nhân bản sang tủ khác, RPO = 0, khoảng cách ngắn | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✖ |
 | Replication bất đồng bộ | Nhân bản sang site xa, RPO tính bằng giây/phút | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✖ |
 | Replication theo consistency group | Nhân bản cả nhóm volume, giữ nhất quán | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✖ |
 | Failover/failback sang site DR | Chuyển vai trò chính sang tủ DR và chuyển ngược lại | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✖ |
-| Active-active metro cluster | Một volume đọc/ghi đồng thời ở 2 tủ, failover tự động | Optional | ◐ ⁹ | ✔ | ✔ | ✔ | ✖ | ✔ | ✔ từ Caracal ¹⁰ ¹¹ |
+| Active-active metro cluster | Một volume đọc/ghi đồng thời ở 2 tủ, failover tự động | Optional | ◐ ⁹ | ✔ | ✔ | ✔ | ✖ | ✔ | ✔ từ Antelope ¹⁰ ¹¹ |
 | Mirror volume giữa 2 pool | Hai bản sao của volume ở 2 pool trong cùng tủ | Optional | – | ✔ | ✔ | ✔ | ✖ | ✔ | ✖ |
 | Replication 3 site | Bản đồng bộ gần kết hợp bản bất đồng bộ xa | Optional | – | ✔ | ✔ | ✔ | ✖ | ✖ | ✖ |
-| Snapshot bất biến chống ransomware | Snapshot không thể sửa/xóa trước hạn lưu giữ | Optional | ✖ | ✔ | ◐ ¹² | ◐ ¹² | ✖ | ✖ | ✖ |
-| Backup volume không gián đoạn | Backup từ snapshot, không phải dừng volume | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | – | ✔ |
+| Snapshot bất biến chống ransomware | Snapshot không thể sửa/xóa trước hạn lưu giữ | Optional | ✖ | ✔ | ◐ ¹² | ✔ ¹² | ✖ | ✖ | ✖ |
+| Backup volume không gián đoạn | Backup từ snapshot, không phải dừng volume | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Mã hóa dữ liệu trên tủ | Mã hóa dữ liệu lưu trên đĩa (data-at-rest) | Optional | ✔ | ✔ | ✔ | ✔ | ◐ ¹³ | ◐ ¹³ | ◐ ¹³ |
-| Di chuyển LUN giữa pool do tủ thực hiện | Tủ tự chuyển dữ liệu sang pool khác khi host vẫn I/O | Optional | ✔ | ✔ | ✔ | ✔ ³ | ✔ | ✔ | ✔ từ Caracal ¹⁴ |
+| Di chuyển LUN giữa pool do tủ thực hiện | Tủ tự chuyển dữ liệu sang pool khác khi host vẫn I/O | Optional | ✔ | ✔ | ✔ | ✔ ³ | ✔ | ✔ | ✔ từ Antelope ¹⁴ |
 | Đổi thuộc tính LUN online (retype) | Đổi thin/thick, nén, tier của volume đang dùng | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ◐ ¹⁵ |
-| Import LUN có sẵn (manage/unmanage) | Đưa LUN đã tồn tại trên tủ vào Cinder, không copy dữ liệu | Optional | ✔ | ✔ | ✔ | ✔ | – | ✔ | ✔ |
+| Import LUN có sẵn (manage/unmanage) | Đưa LUN đã tồn tại trên tủ vào Cinder, không copy dữ liệu | Optional | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Ảo hóa tủ ngoài | Dùng LUN của tủ hãng khác làm dung lượng cho tủ này | Optional | ✖ | ✔ | ✔ | ✔ | ✖ | ◐ ¹³ | ◐ ¹³ |
-| Model được driver ghi tên | Tủ có trong danh sách hỗ trợ của tài liệu driver | Optional | | | | | ✔ | ✔ | G700 ✔ · E590H ✖ ¹⁶ |
+| Model được driver ghi tên | Tủ có trong danh sách hỗ trợ của tài liệu driver | – | | | | | ✔ | ✔ | G700 ✔ · E590H ◐ ¹⁶ |
 | Nhiều pool trên một backend | Một backend Cinder quản lý nhiều pool của tủ | Optional | | | | | ✔ | ✔ | ✔ từ Antelope |
-| FC auto-zoning | Tự tạo/xóa zone trên SAN switch khi attach/detach | Optional | | | | | ✔ | – | ✔ từ Antelope |
+| FC auto-zoning | Tự tạo/xóa zone trên SAN switch khi attach/detach | Optional | | | | | ✔ | ✔ | ✔ |
 | Cinder active/active HA | Chạy nhiều cinder-volume song song cho một backend | Optional | | | | | ✖ | ✖ | ✖ |
+
 ---
 
-## Ghi chú
+## 4. Ghi chú
 
 | # | Nội dung |
 |:---:|---|
 | ¹ | Driver IBM và Hitachi không extend được volume đang có snapshot. |
-| ² | E590H: bảng thông số chỉ ghi cổng host FC và iSCSI; Dynamic Tiering không có trong danh sách tính năng đi kèm. Chưa xác nhận được, cần hỏi Hitachi. |
-| ³ | Có theo SVOS RF dùng chung cho cả dòng VSP, nhưng tài liệu riêng của E590H không ghi rõ. |
+| ² | NVMe phía host: E590H không có. Family Matrix ghi cổng host của E590H gồm FC 16/32 Gb/s và iSCSI 10/25 Gb/s; FC-NVMe chỉ có trên E1090 (hỗ trợ từ firmware 93-06-61). Dynamic Tiering: có trên E590H, mô tả trong System Construction Guide (sổ tay ghi rõ áp dụng cho E590H). Cần license Dynamic Tiering theo dung lượng pool bật tiering; license này không nằm trong gói Base (Phụ lục B). |
+| ³ | Đã xác nhận trong sổ tay Hitachi ghi rõ áp dụng cho E590H. QoS (Performance Manager User Guide, 4060-1J-U08-61): đặt trần theo từng volume, tính bằng IOPS, MB/s hoặc cả hai; tự cài sẵn từ firmware 88-06-01 trở lên; cấu hình qua Storage Navigator hoặc `raidcom`. Di chuyển volume (Volume Migration User Guide, 4060-1J-U18-80): host vẫn đọc/ghi được trong lúc chuyển. |
 | ⁴ | G700: nén/dedup (capacity saving) chỉ áp dụng trên ổ flash nội bộ. |
-| ⁵ | Driver Unity: chỉ tạo được volume nén trên pool all-flash. |
-| ⁶ | Driver Hitachi Caracal: nén và dedup bật cùng nhau qua `hbsd:capacity_saving=deduplication_compression`. Cần bật trước trên pool và có license dedup/compression. |
+| ⁵ | Driver Unity: chỉ tạo được volume nén trên pool all-flash. Mã nguồn báo `compression_support = pool.is_all_flash`, nên dù từ Unity OE 5.2 tủ Unity XT đã có Data Reduction trên pool hybrid, Cinder vẫn không tạo được volume nén trên pool hybrid. |
+| ⁶ | Driver Hitachi từ Antelope: nén và dedup bật cùng nhau qua `hbsd:capacity_saving=deduplication_compression`. Cần bật trước trên pool và có license dedup/compression. |
 | ⁷ | Unity: FAST VP và FAST Cache chỉ có trên model hybrid (880, không phải 880F). |
 | ⁸ | Tiering của Hitachi chạy theo pool trên tủ; Cinder không đặt được chính sách tier cho từng volume. |
 | ⁹ | Unity không có active-active gốc cho block; cần mua thêm metro node hoặc VPLEX. |
-| ¹⁰ | Tài liệu Caracal viết GAD có "từ bản 2023.1", nhưng tài liệu driver bản 2023.1 không mô tả GAD và không có tùy chọn `hitachi_mirror_*`. Coi Caracal là bản chắc chắn có. |
-| ¹¹ | GAD qua Cinder (Caracal): dùng `hbsd:topology=active_active_mirror_volume`. Giới hạn: không dùng ALUA; volume GAD không bật được nén/dedup, không migrate bằng tủ, không manage/unmanage; G700 cần firmware 88-03-21 trở lên. |
-| ¹² | Hitachi có Data Retention Utility trong SVOS RF; chưa xác nhận được giải pháp snapshot bất biến hoàn chỉnh. |
+| ¹⁰ | Release notes 2023.1 ghi "Support Global-Active Device (GAD) volume"; mã nguồn bản 22.0.0 (Antelope) đã có `hbsd_replication.py` và các tùy chọn `hitachi_mirror_*`. Tài liệu driver bản 2023.1 chưa có hướng dẫn GAD; hướng dẫn đầy đủ có từ tài liệu Caracal. |
+| ¹¹ | GAD qua Cinder (từ Antelope): dùng `hbsd:topology=active_active_mirror_volume`. Giới hạn: không dùng ALUA; volume GAD không bật được nén/dedup, không migrate bằng tủ, không manage/unmanage; G700 cần firmware 88-03-21 trở lên. |
+| ¹² | E590H: Thin Image Advanced (dòng E, firmware 93-07-21 trở lên) có "thời gian bảo vệ dữ liệu snapshot" (firmware 93-07-24 trở lên). Trong thời gian này, snapshot không bị ghi đè, resync hay xóa; thời gian chỉ được kéo dài, không rút ngắn hay tắt được. Đặt được 1 đến 12.288 giờ (khoảng 512 ngày), theo từng pair, snapshot group hoặc consistency group, bằng RAID Manager (`-retention`, `raidcom modify snapshot`). Volume phải là volume dùng chung có giảm dữ liệu (cần Adaptive Data Reduction). G700: Thin Image Advanced chỉ có trên dòng E; chỉ có Data Retention Utility, đặt thuộc tính Read Only/Protect cho volume, không phải cơ chế snapshot bất biến riêng. |
 | ¹³ | Trong suốt với Cinder: bật trên tủ thì volume được hưởng, nhưng Cinder không điều khiển. Riêng mã hóa, Cinder có cơ chế mã hóa volume riêng (LUKS). |
-| ¹⁴ | Chỉ migrate trong cùng một tủ. Tài liệu driver ghi có, nhưng ma trận hỗ trợ của Cinder vẫn ghi "missing" cho Hitachi; nên thử trước trên môi trường test. |
-| ¹⁵ | Driver Hitachi không có retype riêng; đổi loại volume thông qua migrate. |
-| ¹⁶ | Từ Antelope, driver ghi tên E590 (all-flash), E790, E1090, E1090H; E590H vẫn không có tên. "✖" ở đây nghĩa là không được ghi tên, không có nghĩa là đã xác định không chạy được. Xem mục 6. |
-
+| ¹⁴ | Chỉ migrate trong cùng một tủ. Release notes và mã nguồn có từ Antelope, nhưng ma trận hỗ trợ của Cinder đến Caracal vẫn ghi "missing" cho Hitachi; nên thử trước trên môi trường test. |
+| ¹⁵ | Yoga: driver Hitachi không có retype riêng, Cinder đổi loại volume bằng cách copy qua host. Từ Antelope: đổi được nén/dedup ngay trên volume; đổi sang pool khác thì dùng migrate do tủ thực hiện. Không đổi được tier hay thin/thick. |
+| ¹⁶ | Tài liệu driver upstream (từ Antelope) ghi E590, E790, E1090, E1090H nhưng không có E590H. Product Compatibility Guide của Hitachi thì ghi E590H được hỗ trợ trên Yoga, Antelope, Caracal. "◐" nghĩa là hãng xác nhận nhưng upstream chưa ghi, và chưa rõ firmware tối thiểu. Xem mục 7. |
+| ¹⁷ | Driver Unity chỉ có một tùy chọn `provisioning:type=compressed`. Trên Unity OE 4.3 trở lên, thư viện storops gửi tùy chọn này thành `isDataReductionEnabled`; theo Dell, Data Reduction gồm dedup, nén và phát hiện block rỗng. Advanced Deduplication (OE 4.5 trở lên, bật riêng cho từng LUN) thì driver không bật được: storops có tham số `is_advanced_dedup_enabled`, nhưng driver Cinder không truyền tham số này. Qua Cinder chỉ áp dụng được trên pool all-flash (ghi chú ⁵). |
+| ¹⁸ | Trên FlashSystem, dedup phải bật riêng cho từng volume (`mkvolume -deduplicated`) và chỉ có trong data reduction pool. Mã nguồn driver ở cả ba bản không có tùy chọn hay lệnh nào cho dedup, chỉ có nén (`compression`). Volume tạo từ Cinder vì vậy không được dedup. |
 
 ---
 
-## 2. So sánh ba hãng
+## 5. So sánh ba hãng
 
 Phạm vi: tính năng có trên tủ và mức hỗ trợ của driver. Không đánh giá giá, hiệu năng, chất lượng hỗ trợ.
 
@@ -112,8 +110,8 @@ Phạm vi: tính năng có trên tủ và mức hỗ trợ của driver. Không 
 | QoS | Có, driver hỗ trợ | Có, driver hỗ trợ | Có, driver chưa hỗ trợ |
 | Nhân bản sang tủ dự phòng | Có, driver hỗ trợ | Có, driver hỗ trợ | Có (gói Advanced), driver chưa hỗ trợ |
 | Active-active | Phải mua thêm thiết bị, driver không hỗ trợ | Có, driver hỗ trợ | Có (gói Advanced), driver hỗ trợ từ Antelope |
-| Nén, dedup | Có; driver hỗ trợ nén, không có dedup | Có; driver hỗ trợ nén, không có dedup | Có; driver hỗ trợ cả hai từ Antelope |
-| Thick provisioning, tiering | Có, driver hỗ trợ | Có, driver hỗ trợ | Có, driver không hỗ trợ |
+| Nén, dedup | Có; driver bật Data Reduction (gồm dedup cơ bản), không bật được Advanced Deduplication | Có; driver hỗ trợ nén, không có dedup | Có; driver hỗ trợ cả hai từ Antelope |
+| Thick provisioning, tiering | Có, driver hỗ trợ | Có, driver hỗ trợ | Có; driver không hỗ trợ thick, tiering chỉ theo pool trên tủ |
 | License | Gần như trọn gói | Trọn gói, trừ mã hóa và ảo hóa tủ ngoài | Chia gói cơ bản và gói Advanced |
 | Tích hợp OpenStack | Đầy đủ, ổn định | Đầy đủ nhất | Hạn chế hơn; đủ dùng từ Antelope, thiếu QoS và nhân bản |
 
@@ -121,14 +119,15 @@ Phạm vi: tính năng có trên tủ và mức hỗ trợ của driver. Không 
 
 ---
 
-## 3. Khác nhau giữa ba bản OpenStack
+## 6. Khác nhau giữa ba bản OpenStack
+
 - Unity và FS7300: ba bản Yoga, Antelope, Caracal hỗ trợ như nhau.
-- Hitachi: bản càng mới càng đầy đủ. Caracal là bản đầu tiên điều khiển được active-active, nén/dedup và di chuyển ổ đĩa do tủ thực hiện.
+- Hitachi: Antelope là bản đầu tiên điều khiển được active-active (GAD), nén/dedup, di chuyển volume do tủ thực hiện, retype và nhiều pool; cũng là bản đầu tiên tài liệu upstream ghi tên VSP E590 (trang tương thích của Hitachi thì ghi E590, E590H từ Yoga). Caracal so với Antelope chỉ có sửa lỗi.
 - Hitachi ở cả ba bản: QoS và nhân bản vẫn phải cấu hình trực tiếp trên tủ.
 
 ---
 
-## 4. 6. Riêng về Hitachi VSP E590H
+## 7. Riêng về Hitachi VSP E590H
 
 ### E590 và E590H khác nhau thế nào
 
@@ -154,18 +153,54 @@ Hitachi mô tả hai model trong cùng một bộ tài liệu phần cứng. Kh�
 | 2024.1 Caracal | E590, E790, E990, E1090, E1090H | Không |
 | Bản mới nhất (kiểm tra thêm, 10/2026) | E590, E790, E990, E1090, E1090H | Không |
 
-Tài liệu ghi tên không nhất quán giữa các model: có ghi cả "E1090, E1090H", nhưng chỉ ghi "E590, E790" mà không có bản H. Không rõ đây là do chưa kiểm thử hay do tài liệu chưa cập nhật.
+Tài liệu ghi tên không nhất quán giữa các model: có ghi cả "E1090, E1090H", nhưng chỉ ghi "E590, E790" mà không có bản H. Đối chiếu với Product Compatibility Guide của Hitachi (bên dưới) thì E590H, E790H đã được hãng hỗ trợ, nên nhiều khả năng tài liệu upstream chưa cập nhật.
 
 ### Đã tra thêm phía Hitachi
 
 | Nguồn | Kết quả |
 |---|---|
-| Trang Product Compatibility Guide cho driver OpenStack | Không đọc được (trang tra cứu động, đang lỗi tìm kiếm) |
+| Trang Product Compatibility Guide cho driver OpenStack | Có ghi tên E590H cho Yoga, Antelope và Caracal (chi tiết bên dưới) |
 | Hướng dẫn cài driver cho Red Hat OpenStack Platform 16.2 và 17.1 (09/2024) | Không có danh sách model |
 | Hướng dẫn cài driver cho Red Hat OpenStack Services on OpenShift 18.0 (06/2025) | Không có danh sách model |
 | User guide driver riêng của Hitachi | Chỉ tìm được bản cũ (Train, Queens), trước thời E590H |
+| Red Hat Ecosystem Catalog (trang chứng nhận driver) | Chứng nhận theo bản Red Hat OpenStack Platform, không ghi model tủ hay firmware (chi tiết bên dưới) |
 
-Không có nguồn nào khẳng định có hỗ trợ, cũng không có nguồn nào khẳng định không hỗ trợ.
+### Chứng nhận của Red Hat
+
+Tab "Certifications" trên Red Hat Ecosystem Catalog, xem ngày 27/10/2026:
+
+| Red Hat OpenStack Platform | Tương ứng bản upstream | Hệ điều hành | Bản driver | Giao thức được chứng nhận |
+|---|---|---|---|---|
+| 17.1 | Wallaby | RHEL 9.2, x86_64 | 2.0.0 | FC, iSCSI (Base, Backup) |
+| 16.2 | Train | RHEL 8.4, x86_64 | Community Edition v2.0.0 | FC, iSCSI (Base, Backup) |
+| 13.0 | Queens | RHEL 7.5, x86_64 | HBSD 6.1 | Không ghi |
+| 10.0 | Newton | RHEL 7.3, x86_64 | HBSD 3.1 | Không ghi |
+
+- Trang chứng nhận driver chứ không chứng nhận từng model tủ, nên không có thông tin firmware.
+- Chưa có dòng nào cho RHOSO 18.0 (dựa trên Antelope), dù Product Compatibility Guide của Hitachi có ghi RHOSO 18.0 và 18.0.17.
+- Các bản RHOSP được chứng nhận đều cũ hơn Yoga, nên trang này không áp dụng cho Yoga, Antelope, Caracal bản cộng đồng. Chỉ cần quan tâm nếu triển khai bằng bản phân phối của Red Hat.
+
+### Product Compatibility Guide của Hitachi
+
+Tra cứu ngày 27/10/2026 tại mục "VSP One Block Storage → Block Storage Driver for OpenStack", lọc Storage = E590 và E590H, Release Name = Yoga, Antelope, Caracal. Kết quả 21 dòng.
+
+| Bản OpenStack | Bản phân phối | Hệ điều hành | Loại driver | Cổng kết nối |
+|---|---|---|---|---|
+| 2023.1 Antelope | RH OSO 18.0 và 18.0.17 | Red Hat EL 9.4 (x64) | RHOSO in-tree driver | FC 16 Gbps, FC 32 Gbps, iSCSI 10 Gbps |
+| 2023.1 Antelope | Other (Community) | Other (Community) | Community driver | FC 16 Gbps, FC 32 Gbps, iSCSI 10 Gbps |
+| 2024.1 Caracal | 2024.1 Sunbeam, 2024.1 Juju Charmed | Ubuntu 24.04 LTS | Community driver | FC 16 Gbps, FC 32 Gbps, iSCSI 10 Gbps |
+| 2024.1 Caracal | Other (Community) | Other (Community) | Community driver | FC 16 Gbps, FC 32 Gbps, iSCSI 10 Gbps |
+| Yoga | Other (Community) | Other (Community) | Community driver | FC 16 Gbps, FC 32 Gbps, iSCSI 10 Gbps |
+
+- Mọi dòng đều ghi cùng một danh sách tủ: VSP E590, E590H, E790, E790H, E990, E1090, E1090H.
+- Ghi chú ở dòng community driver: "Supported on the Operating Systems which community Openstack supports", tức chạy trên các hệ điều hành mà OpenStack cộng đồng hỗ trợ.
+- Trang không ghi yêu cầu firmware.
+- Với iSCSI, trang chỉ ghi 10 Gbps, dù E590H có cả cổng iSCSI 25 Gb/s (ghi chú ²). Nếu định dùng cổng 25 Gb/s thì nên hỏi Hitachi.
+- Trang của Hitachi rộng hơn tài liệu upstream: upstream bản Yoga chỉ ghi E990, còn trang Hitachi ghi cả E590 và E590H cho Yoga.
+
+Như vậy đã có nguồn chính thức của hãng ghi tên E590H với driver OpenStack ở cả ba bản.
+
+Tra cùng cách cho G700 (lọc Storage = G700) cũng ra 21 dòng, cùng các tổ hợp bản OpenStack, bản phân phối và cổng kết nối như trên. Các dòng này ghi chung nhóm VSP F350, F370, F700, F900, G350, G370, G700, G900.
 
 ### Đánh giá
 
@@ -174,15 +209,16 @@ Cần phân biệt hai mức:
 | Mức | Nghĩa là | Tình trạng với E590H |
 |---|---|---|
 | Chạy được về kỹ thuật | Driver gửi lệnh và tủ thực hiện được | Khả năng cao là có. Driver làm việc với hệ điều hành của tủ qua REST API, không phụ thuộc loại ổ đĩa; E590 cùng hệ điều hành đã được ghi tên từ Antelope. Đây là suy luận, chưa kiểm chứng. |
-| Được hỗ trợ chính thức | Hãng đã kiểm thử, ghi tên trong tài liệu, chịu trách nhiệm khi có lỗi | Chưa có tài liệu nào xác nhận. |
+| Được hỗ trợ chính thức | Hãng đã kiểm thử, ghi tên trong tài liệu, chịu trách nhiệm khi có lỗi | Có. Product Compatibility Guide của Hitachi ghi tên E590H cho Yoga, Antelope, Caracal, qua FC 16/32 Gbps và iSCSI 10 Gbps. Chưa rõ yêu cầu firmware. |
 
-Rủi ro nếu triển khai khi chưa có xác nhận: gặp sự cố thì hãng có thể từ chối hỗ trợ vì cấu hình nằm ngoài danh sách.
+Điểm còn vênh: tài liệu upstream của OpenStack chưa ghi E590H, và bản Yoga upstream chỉ ghi E990. Khi có sự cố, bảng của Hitachi là căn cứ để yêu cầu hãng hỗ trợ.
 
 ### Đề xuất
 
-1. Gửi câu hỏi cho Hitachi hoặc đối tác cung cấp tủ, xin trả lời bằng văn bản: "VSP E590H có được hỗ trợ bởi Hitachi Block Storage Driver trên OpenStack Yoga, 2023.1, 2024.1 không, và yêu cầu firmware bao nhiêu?"
-2. Trong lúc chờ, coi Antelope là bản thấp nhất nên cân nhắc cho E590H, vì Yoga không ghi tên cả E590.
-3. Nếu có sẵn tủ và môi trường thử nghiệm, test các thao tác cơ bản (tạo, gán, mở rộng, snapshot, clone) trước khi dùng thật.
+1. Lưu lại bản PDF/CSV xuất từ Product Compatibility Guide (trang có sẵn nút xuất) làm bằng chứng hỗ trợ.
+2. Hỏi Hitachi hoặc đối tác cung cấp tủ về firmware tối thiểu cho E590H và phiên bản driver cụ thể ứng với từng bản OpenStack.
+3. Với Yoga, tính năng driver vẫn giới hạn theo bản Yoga (mục 5, 6); muốn có GAD, nén/dedup qua OpenStack thì cần Antelope trở lên.
+4. Nếu có sẵn tủ và môi trường thử nghiệm, test các thao tác cơ bản (tạo, gán, mở rộng, snapshot, clone) trước khi dùng thật.
 
 ---
 
@@ -202,7 +238,7 @@ Rủi ro nếu triển khai khi chưa có xác nhận: gặp sự cố thì hãn
 | Active-active metro | Một volume đọc/ghi đồng thời ở 2 tủ, failover tự động | metro node, VPLEX (mua thêm) | HyperSwap | global-active device (GAD) |
 | Mirror giữa 2 pool | Hai bản sao của volume trong cùng một tủ | Không có | Volume Mirroring | ShadowImage |
 | Replication 3 site | Bản đồng bộ gần kết hợp bản bất đồng bộ xa | Không nêu | 3-site replication | 3DC (GAD + UR, TC + UR) |
-| Snapshot bất biến | Snapshot không thể sửa/xóa trước hạn | Không có cho block | Safeguarded Copy | Data Retention Utility |
+| Snapshot bất biến | Snapshot không thể sửa/xóa trước hạn | Không có cho block | Safeguarded Copy | Thin Image Advanced với thời gian bảo vệ snapshot (dòng E); Data Retention Utility (G700) |
 | Mã hóa | Mã hóa dữ liệu trên đĩa | D@RE | AES-XTS 256 | AES-256-XTS (cần back-end mã hóa) |
 | Ảo hóa tủ ngoài | Dùng LUN của tủ hãng khác làm dung lượng | Không có | External virtualization | Universal Volume Manager |
 | Consistency group | Gom nhiều volume để snapshot/replicate nhất quán | Consistency Group | Consistency group, volume group | Consistency group |
@@ -214,7 +250,7 @@ Rủi ro nếu triển khai khi chưa có xác nhận: gặp sự cố thì hãn
 | Dell Unity XT 880 | Thin, data reduction, QoS, snapshot, thin clone, replication đồng bộ và bất đồng bộ, FAST VP và FAST Cache (hybrid) | metro node, VPLEX, RecoverPoint Advanced, AppSync Advanced, PowerPath; mã hóa D@RE chọn lúc đặt hàng |
 | IBM FS7300 | Mọi tính năng trừ hai mục bên phải | Ảo hóa tủ ngoài (theo dung lượng), mã hóa (feature code). Cần hỏi IBM về license remote mirroring cho HyperSwap |
 | Hitachi G700 | Gói Foundation: SVOS RF, Universal Volume Manager, Local Replication (Thin Image, ShadowImage), Data Mobility (Dynamic Tiering) | Gói Advanced: TrueCopy, Universal Replicator, GAD. Mã hóa: license và phần cứng riêng |
-| Hitachi E590H | Gói Base: Adaptive Data Reduction, Storage Virtualization, In-System Replication, Non-disruptive Migration | Gói Advanced: remote replication, GAD |
+| Hitachi E590H | Gói Base: Adaptive Data Reduction, Storage Virtualization, In-System Replication, Non-disruptive Migration | Gói Advanced: remote replication, GAD. Dynamic Tiering: license theo dung lượng pool |
 
 License thực tế trên từng tủ cần kiểm tra trực tiếp: Unisphere (Unity), lệnh `lslicense` (IBM), màn hình License trong Storage Navigator (Hitachi).
 
@@ -224,7 +260,7 @@ License thực tế trên từng tủ cần kiểm tra trực tiếp: Unisphere 
 |---|---|---|
 | Dell Unity 880 | Dell Unity driver (`cinder.volume.drivers.dell_emc.unity.Driver`) | Unity OE 4.1.X trở lên, storops 1.2.3 trở lên |
 | IBM FS7300 | IBM Storage Virtualize driver (`StorwizeSVCFCDriver`, `StorwizeSVCISCSIDriver`) | Phủ họ FlashSystem 5xxx, 7xxx, 9xxx |
-| Hitachi G700, E590H | Hitachi VSP driver (`HBSDFCDriver`, `HBSDISCSIDriver`) | G700: firmware 88-01-04 trở lên. E590 (được ghi tên từ Antelope): firmware 93-03-22 trở lên; E590H chưa được ghi tên. License SVOS, Dynamic Provisioning, Thin Image |
+| Hitachi G700, E590H | Hitachi VSP driver (`HBSDFCDriver`, `HBSDISCSIDriver`) | G700: firmware 88-01-04 trở lên. E590 (được ghi tên upstream từ Antelope): firmware 93-03-22 trở lên. E590H chưa được ghi tên upstream, nhưng có trong Product Compatibility Guide của Hitachi cho Yoga, Antelope, Caracal. License SVOS, Dynamic Provisioning, Thin Image |
 
 Bảng dựa trên tài liệu upstream của OpenStack. Driver do Hitachi phát hành riêng có thể hỗ trợ rộng hơn.
 
@@ -266,3 +302,7 @@ Bảng dựa trên tài liệu upstream của OpenStack. Driver do Hitachi phát
 - [Hitachi VSP E Series Family Matrix](https://www.hitachivantara.com/en-us/pdf/specifications/virtual-storage-platform-e-series-family-matrix.pdf)
 - [Hitachi VSP E590/E790 Hardware Reference](https://docs.hitachivantara.com/r/en-us/mk-97hm85050/latest/introduction)
 - [Hitachi Product Compatibility Guide: Block Storage Driver for OpenStack](https://compatibility.hitachivantara.com/products/openstack)
+- [Red Hat Ecosystem Catalog: Hitachi Block Storage Driver for OpenStack](https://catalog.redhat.com/en/software/openstack/detail/60466)
+- Sổ tay Hitachi (tiếng Nhật, ghi rõ áp dụng cho E590H): [Danh sách tính năng theo phiên bản firmware dòng E](https://itpfdoc.hitachi.co.jp/manuals/4049/40491JU91_SVOSRF987/40491JU91.pdf) · [Thin Image Advanced User Guide](https://itpfdoc.hitachi.co.jp/manuals/4049/40491JU23_SVOSRF987/40491JU23.pdf) · [Performance Manager (Performance Monitor, Server Priority Manager, QoS) User Guide](https://itpfdoc.hitachi.co.jp/manuals/4049/40491JU08_SVOSRF96/40491JU08.pdf) · [Volume Migration User Guide](https://itpfdoc.hitachi.co.jp/manuals/4049/40491JU18_SVOSRF98/40491JU18.pdf)
+- [IBM: lệnh mkvolume (tùy chọn -deduplicated)](https://www.ibm.com/docs/en/SSGBLEL_9.1.0/storageflashsystem/cli/svc_mkvolume.html)
+- [storops: tham số tạo LUN của Unity (lun.py)](https://github.com/emc-openstack/storops/blob/master/storops/unity/resource/lun.py)
