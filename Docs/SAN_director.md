@@ -12,7 +12,7 @@
 1. **Director** là switch FC loại lớn, dạng chassis: cắm thêm card để có thêm cổng, mọi linh kiện đều có bản dự phòng. Thường đặt ở trung tâm (core) của mạng SAN. **Switch cố định** nhỏ hơn và rẻ hơn, phù hợp với SAN nhỏ hoặc đặt ở đầu rack.
 2. Yếu tố quan trọng nhất cho độ sẵn sàng là **có hai fabric tách rời (A/B)**, hơn là mua director. Hai switch thường chia làm A/B vẫn an toàn hơn một director duy nhất.
 3. **Auto-zoning qua Cinder chạy được nhưng không ai bảo trì:**
-   - Driver **Brocade** bị đánh dấu *unsupported* từ 2019 vì Broadcom bỏ hỗ trợ. Muốn chạy phải bật `enable_unsupported_driver = True`.
+   - Driver **Brocade** bị đánh dấu *unsupported* từ 2019 vì Broadcom bỏ hỗ trợ. Muốn chạy phải bật `enable_unsupported_driver = True` trong section `[fc-zone-manager]`.
    - Driver **Cisco** vẫn ghi là *supported*, nhưng không thấy CI của Cisco chạy từ khoảng năm 2019.
    - Mã nguồn của cả hai driver giống hệt nhau ở Yoga, Antelope và Caracal (đã so sánh từng file).
 4. **Đề xuất:** zone bằng tay (pre-zoning) mỗi khi thêm compute node, và không bật auto-zoning. Nếu buộc phải bật auto-zoning thì xem mục 5.4 và thử trên lab trước.
@@ -112,9 +112,9 @@ Cả ba driver tủ trong `SAN.md` đều hỗ trợ việc này. Riêng Hitachi
 | | Brocade | Cisco |
 |---|---|---|
 | Trạng thái | **Unsupported** từ Ussuri (12/2019). Commit ghi: *"Brocade has indicated they will no longer be supporting their zone manager driver"* | Supported. Từng bị đánh dấu unsupported vào 09/2017, đến 01/2018 bỏ đánh dấu |
-| Cần `enable_unsupported_driver = True` | Có | Không |
+| Cần `enable_unsupported_driver = True` (section `[fc-zone-manager]`) | Có | Không |
 | CI kiểm thử của hãng | Không có | Không thấy hoạt động từ khoảng 2019 |
-| Giao thức tới switch | REST (mặc định), HTTP, SSH | Chỉ SSH |
+| Giao thức tới switch | `REST_HTTP` (mặc định, không mã hóa), `REST_HTTPS`, `HTTP`, `HTTPS`, `SSH` | Chỉ SSH |
 | Hỗ trợ VF / VSAN | VF chỉ qua REST/HTTP, **không** qua SSH | VSAN, bắt buộc khai báo. Tên zoneset đang chạy phải trùng tên fabric trong `fc_fabric_names` |
 | Firmware tài liệu ghi | FOS ≥ 6.4 (chưa cập nhật cho FOS 9/10) | NX-OS ≥ 6.2(9) (chưa cập nhật cho 9.x) |
 
@@ -137,7 +137,7 @@ Cả hai driver đều tạo một zone cho mỗi cặp (WWPN host, WWPN tủ), 
 1. **Mặc định zone bằng tay:** không đặt `zoning_mode`. Khi thêm compute node, zone các WWPN HBA của node với cổng tủ trên cả fabric A và B (nên dùng Peer Zone hoặc Smart Zone).
 2. **Nếu buộc phải dùng auto-zoning:**
    - Thử trên lab với đúng phiên bản FOS hoặc NX-OS đang chạy.
-   - Brocade: dùng `REST_HTTPS` và một tài khoản `zoneadmin` riêng cho Cinder.
+   - Brocade: đặt `fc_southbound_protocol = REST_HTTPS` (mặc định `REST_HTTP` gửi mật khẩu không mã hóa) và dùng một tài khoản `zoneadmin` riêng cho Cinder.
    - Theo dõi log `cinder-volume`, bắt các câu: `Unsupported drivers are disabled`, `Zoning session exists`, `FC Zone Manager not enabled` (hai câu sau chỉ ghi ở mức debug, phải bật `debug = True` mới thấy).
    - Đặt quy định: không ai sửa zoneset trên switch mà để dở chưa kích hoạt.
 3. Nếu cần Hitachi Port Scheduler thì phải dùng auto-zoning. Khi đó cần cân nhắc lại điểm 1.
@@ -165,7 +165,7 @@ Cả hai driver đều tạo một zone cho mỗi cặp (WWPN host, WWPN tủ), 
 
 **Mã nguồn Cinder** (thay `24.0.0` bằng `20.0.0` hoặc `22.0.0` để xem bản khác)
 - [zonemanager/utils.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/utils.py): nơi đọc `zoning_mode` từ `[DEFAULT]` · [volume/configuration.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/volume/configuration.py)
-- [fc_zone_manager.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/fc_zone_manager.py) · [brcd_fc_zone_driver.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/drivers/brocade/brcd_fc_zone_driver.py) · [brcd_fabric_opts.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/drivers/brocade/brcd_fabric_opts.py) · [brcd_rest_fc_zone_client.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/drivers/brocade/brcd_rest_fc_zone_client.py) · [cisco_fc_zone_driver.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/drivers/cisco/cisco_fc_zone_driver.py)
+- [fc_zone_manager.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/fc_zone_manager.py) (`enable_unsupported_driver` thuộc `[fc-zone-manager]`) · [brcd_fc_zone_driver.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/drivers/brocade/brcd_fc_zone_driver.py) · [brcd_fabric_opts.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/drivers/brocade/brcd_fabric_opts.py) (`fc_southbound_protocol` mặc định `REST_HTTP`) · [brcd_rest_fc_zone_client.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/drivers/brocade/brcd_rest_fc_zone_client.py) · [cisco_fc_zone_driver.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/zonemanager/drivers/cisco/cisco_fc_zone_driver.py)
 - [hbsd_rest_fc.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/volume/drivers/hitachi/hbsd_rest_fc.py) (Hitachi `hitachi_zoning_request`)
 - Commit: [Brocade unsupported (8c2e3cd)](https://github.com/openstack/cinder/commit/8c2e3cd66b) · [Cisco unsupported (c92c428)](https://github.com/openstack/cinder/commit/c92c428233) · [Cisco bỏ đánh dấu (47b2c53)](https://github.com/openstack/cinder/commit/47b2c53952)
 - Tài liệu: [FC Zone Manager (2024.1)](https://docs.openstack.org/cinder/2024.1/configuration/block-storage/fc-zoning.html) · [Danh sách driver](https://docs.openstack.org/cinder/2024.1/drivers.html)

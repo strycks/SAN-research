@@ -105,6 +105,8 @@ Scheduler chỉ quyết định chỗ đặt cho volume **mới**. Volume cũ ph
 | Chưa gắn vào máy ảo | Cinder (qua host chạy cinder-volume) | Host đó cần có đường tới cả hai tủ |
 | Đang gắn vào máy ảo | Nova/libvirt copy trong lúc máy ảo vẫn chạy | Chậm và tốn băng thông, nên làm giờ thấp điểm |
 
+Cinder không migrate được volume đang có snapshot, nằm trong group hoặc có replication (`volume/api.py`, `migrate_volume`). Các volume này phải xóa snapshot hoặc gỡ khỏi group trước, hoặc giữ lại trên tủ 2.
+
 Tính năng di chuyển volume do tủ tự làm **chỉ chạy được trong cùng một tủ**, không chuyển được sang tủ khác.
 
 ---
@@ -150,12 +152,13 @@ Nếu tủ 1 và tủ 2 khác hãng (`SAN.md` có 4 tủ thuộc 3 hãng), mỗi
 | 4 | Tạo tài khoản riêng cho Cinder 2 trên tủ 1. Với Hitachi, chia `hitachi_ldev_range` cho hai cloud | Tủ 1 | Khó truy vết; Hitachi có thể trùng LDEV |
 | 5 | Khai tủ 1 làm backend thứ hai trong Cinder 2, chung volume type với tủ 2, đặt `reserved_percentage` | Cinder 2 | Cinder 2 vẫn chỉ biết tủ 2 |
 | 6 | Thử tạo volume, gắn vào máy ảo, migrate, trên lab hoặc với volume test | OpenStack | – |
-| 7 | Migrate dần volume cũ từ tủ 2 sang tủ 1, vào giờ thấp điểm | OpenStack | Tủ 2 vẫn ở 80% |
+| 7 | Migrate dần volume cũ từ tủ 2 sang tủ 1, vào giờ thấp điểm. Volume có snapshot, thuộc group hoặc có replication không migrate được (mục 3.5) | OpenStack | Tủ 2 vẫn ở 80% |
 
 ---
 
 ## Nguồn (mã nguồn Cinder 24.0.0, Nova 29.0.0 = 2024.1)
 
+- Điều kiện migrate: [volume/api.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/volume/api.py) (`migrate_volume`)
 - Scheduler: [host_manager.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/scheduler/host_manager.py) (filter/weigher mặc định) · [weights/capacity.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/scheduler/weights/capacity.py) · [weights/goodness.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/scheduler/weights/goodness.py) · [filters/capacity_filter.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/scheduler/filters/capacity_filter.py)
 - Unity, đặt tên host: [unity/client.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/volume/drivers/dell_emc/unity/client.py) · [unity/adapter.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/volume/drivers/dell_emc/unity/adapter.py)
 - IBM, tìm host theo WWPN và hậu tố ngẫu nhiên: [storwize_svc_common.py](https://raw.githubusercontent.com/openstack/cinder/24.0.0/cinder/volume/drivers/ibm/storwize_svc/storwize_svc_common.py)
